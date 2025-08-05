@@ -51,7 +51,7 @@ export class UserService {
     const token = this.jwtService.sign(payload);
     res.cookie('token',{
       httpOnly:true,
-      sameSite:'lax',
+      sameSite:'strict',
       maxAge:7 * 24 * 60 * 60 * 1000,
     })
     return {
@@ -62,6 +62,11 @@ export class UserService {
         email:user?.email
       },
     }
+  }
+
+  async getRegisterList():Promise<User[]>{
+    const users = await this.userModel.find({}, '-password').exec();
+    return users;
   }
 
 }

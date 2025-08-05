@@ -65,7 +65,9 @@ export class ListenController {
       throw new BadRequestException('No file uploaded');
     }
     console.log("AAAAAAAAAAAA")
+    console.log("EEEEEEEEEEEE")
     const result = await this.listenService.processVideo(file.path,file.originalname);
+    console.log("BBBBBBBBBBBB")
     return {
       message:'Processed successfully',
       originalName:file.originalname,

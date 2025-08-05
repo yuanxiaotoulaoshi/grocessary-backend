@@ -3,7 +3,7 @@
 /node_modules
 /build
 
-uploads/
+/uploads
 
 # Logs
 logs
@@ -56,3 +56,35 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Hugging Face 缓存 (模型文件很大，不应该提交)
+.cache/
+*.cache/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Docker 相关
+.dockerignore
+
+# Python 虚拟环境
+venv/
+env/
+ENV/
+whisper-env/
+
+# 其他缓存目录
+.pytest_cache/
+.coverage
+.tox/
+
+# 临时文件
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# 压缩文件
+*.tar.gz
+*.zip
+*.rar

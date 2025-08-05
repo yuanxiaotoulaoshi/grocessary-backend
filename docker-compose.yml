@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      target: ${BUILD_TARGET:-development}
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    restart: ${RESTART_POLICY:-no}
+    volumes:
+      - ./uploads:/app/uploads
+      - ${SOURCE_MOUNT:-}
+    networks:
+      - app-network
+    depends_on:
+      - redis
+
+  redis:   # ⬅️ 必须和 api 平级，不能嵌套
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    volumes:
+      - redis_data:/data
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  redis_data:

@@ -1,5 +1,7 @@
 import { Injectable,BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import {Model} from 'mongoose';
 import {Listen, ListenDocument} from './schemas/listen.schema';
 import { CreateListenDto } from './dto/create-listen.dto';
@@ -14,7 +16,8 @@ import * as fsExtra from 'fs-extra';
 export class ListenService {
   constructor(
     @InjectModel(Listen.name) private listenModel:Model<ListenDocument>,
-    @InjectModel(User.name) private userModel:Model<UserDocument>
+    @InjectModel(User.name) private userModel:Model<UserDocument>,
+    @InjectQueue('listen-processing') private listenQueue: Queue,
   ){}
   
   async create(dto:CreateListenDto,userId:string):Promise<Listen>{
@@ -41,10 +44,7 @@ export class ListenService {
   }
 
   async unfavorite(userId:string, listenId:string):Promise<void>{
-    console.log("#####",listenId)
-    console.log("&&&&&",userId)
     const listenItem = await this.listenModel.findById(listenId);
-    console.log("*****",listenItem)
     if(!listenItem){
       throw new NotFoundException('该句子不存在')
     }
@@ -56,19 +56,13 @@ export class ListenService {
   }
 
   async getFavorites(user:{sub:string,userName:string}){
-    console.log("userrrrrr",user)
     const fullUser = await this.userModel.findById(user.sub)
-    console.log("fullUser",fullUser)
-
     if(!fullUser?.favorites||fullUser.favorites.length===0){
       return [];
     }
-
     const favorites = await this.listenModel.find({
       _id:{$in:fullUser.favorites},
     })
-
-    console.log("****",favorites)
     return favorites;
   }
 
@@ -81,6 +75,7 @@ export class ListenService {
     if (fs.existsSync(mp3OutputDir)) {
       console.log("🔁 该视频已处理，复用现有结果");
       return {
+        status: 'completed',
         message: 'Video already processed',
         originalName,
         baseName,
@@ -89,43 +84,49 @@ export class ListenService {
         videoPath,
       };
     }
-   
-    await fsExtra.emptyDir(mp3OutputDir);
+    try {
+      // 确保输出目录存在
+      await fsExtra.ensureDir(mp3OutputDir);
+      console.log("CCCCCCCCCCC")
+      // 添加任务到 Redis 队列
+      const job = await this.listenQueue.add(
+        'process-video',
+        {
+          videoPath,
+          originalName,
+          baseName,
+          wavPath,
+          transcriptPath,
+          mp3OutputDir,
+        },
+        {
+          attempts: 3, // 重试次数
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
+          removeOnComplete: 5, // 保留最近 5 个完成的任务
+          removeOnFail: 10, // 保留最近 10 个失败的任务
+        }
+      );
 
-    try{
-      // 1. 调用 Whisper，生成 wav 和 json 字幕
-    transcribeWithWhisper(videoPath, transcriptPath, wavPath).then(()=>{
-      const transcriptFilePath = path.join(transcriptPath, `${baseName}.json`);
-      if (!fs.existsSync(transcriptFilePath)) {
-        console.error("Transcript file missing", transcriptFilePath);
-        return;
-      }
-      const transcriptJson = JSON.parse(fs.readFileSync(transcriptFilePath, 'utf-8'));
-      const segments = transcriptJson.segments;
+      console.log(`📝 任务已添加到队列，Job ID: ${job.id}`);
 
-      return cutSentencesToMp3(wavPath, segments, mp3OutputDir);
-    }) .then(() => {
-      console.log('All processing done for', videoPath);
-    })
-    .catch(err => {
-      console.error('Processing error', err);
-    });
-    console.log("CCCCCCCCCC")
-  
-    return {
-      message: 'Upload received, processing in background',
-      originalName:path.basename(videoPath),
-      baseName,
-      transcriptPath:path.join(transcriptPath,`${baseName}.json`),
-      mp3Dir: mp3OutputDir,
-      videoPath,
-    };
-    }catch (err) {
-      console.error("❌ Processing error:", err);
+      return {
+        status: 'processing',
+        message: 'Upload received, processing in background',
+        jobId: job.id,
+        originalName,
+        baseName,
+        transcriptPath: path.join(transcriptPath, `${baseName}.json`),
+        mp3Dir: mp3OutputDir,
+        videoPath,
+      };
+    } catch (err) {
+      console.error('❌ Processing error:', err);
       throw new Error('Failed to process video');
     }
-  
-    
+
   }
 
   async getSegents(videoPath: string) {
