@@ -6,5 +6,6 @@ export function transformGlossary(doc: Glossary) {
     enName: doc.enName,
     categoryLevel1: doc.categoryLevel1,
     categoryLevel2: doc.categoryLevel2,
+    currentMetadata: doc.currentMetadata,
   };
 }

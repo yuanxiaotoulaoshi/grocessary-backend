@@ -11,6 +11,7 @@ import { AuthModule } from './auth/auth.module';
 import { BullModule } from '@nestjs/bull';
 // import {BullBoardModule} from '@bull-board/nestjs';
 // import { ExpressAdapter } from '@nestjs/platform-express';
+import { ChunkModule } from './chunk/chunk.module';
 
 @Module({
   imports: [
@@ -56,6 +57,8 @@ import { BullModule } from '@nestjs/bull';
         },
       },
     }),
+
+    ChunkModule,
 
     // settings: {
     //   stalledInterval: 30 * 1000,    // 30秒检查一次停滞的任务

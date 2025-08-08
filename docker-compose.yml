@@ -1,37 +1,61 @@
+# version: '3.8'
+
+# services:
+#   api:
+#     build:
+#       context: .
+#       target: ${BUILD_TARGET:-development}
+#     ports:
+#       - "3000:3000"
+#     environment:
+#       - NODE_ENV=${NODE_ENV:-development}
+#       - REDIS_HOST=redis
+#       - REDIS_PORT=6379
+#     restart: ${RESTART_POLICY:-no}
+#     volumes:
+#       - ./uploads:/app/uploads
+#       - ${SOURCE_MOUNT:-}
+#     networks:
+#       - app-network
+#     depends_on:
+#       - redis
+#     # 完全禁用所有安全限制（仅用于开发环境）
+#     security_opt:
+#       - apparmor:unconfined
+#       - seccomp:unconfined
+#     cap_add:
+#       - SYS_ADMIN
+#     # 注意：privileged 模式会给予容器几乎所有权限，谨慎使用
+#     # privileged: true
+
+#   redis:
+#     image: redis:7-alpine
+#     ports:
+#       - "6379:6379"
+#     networks:
+#       - app-network
+#     volumes:
+#       - redis_data:/data
+
+# networks:
+#   app-network:
+#     driver: bridge
+
+# volumes:
+#   redis_data:
+
+
 version: '3.8'
 
 services:
   api:
     build:
       context: .
-      target: ${BUILD_TARGET:-development}
+      target: production
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    restart: ${RESTART_POLICY:-no}
     volumes:
+      # 映射宿主机的 uploads 目录到容器内的 uploads 目录
       - ./uploads:/app/uploads
-      - ${SOURCE_MOUNT:-}
-    networks:
-      - app-network
-    depends_on:
-      - redis
-
-  redis:   # ⬅️ 必须和 api 平级，不能嵌套
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    networks:
-      - app-network
-    volumes:
-      - redis_data:/data
-
-networks:
-  app-network:
-    driver: bridge
-
-volumes:
-  redis_data:
+    environment:
+      - NODE_ENV=production

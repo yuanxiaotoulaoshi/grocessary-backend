@@ -2,6 +2,10 @@ import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
 export type GlossaryDocument = Glossary & Document;
+type currentMetadata = {
+  baseName: string, 
+  videoId: string,
+}
 
 @Schema()
 export class Glossary{
@@ -18,6 +22,9 @@ export class Glossary{
 
   @Prop({required:true})
   categoryLevel2:string;
+
+  @Prop({required:false})
+  currentMetadata:string;
 }
 
 export const GlossarySchema = SchemaFactory.createForClass(Glossary);

@@ -1,0 +1,121 @@
+# # 构建阶段
+# FROM node:20-slim AS builder
+
+# WORKDIR /app
+
+# # 复制包管理文件并安装依赖
+# COPY package*.json pnpm-lock.yaml ./
+# RUN npm install -g pnpm && \
+#     pnpm config set registry https://registry.npmmirror.com && \
+#     pnpm install --frozen-lockfile
+
+# # 复制源代码并构建
+# COPY . .
+# RUN pnpm run build
+
+# # 生产环境 - 使用 Python 官方镜像
+# FROM python:3.11-slim AS production
+
+# WORKDIR /app
+
+# # 安装系统依赖
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     ffmpeg \
+#     curl \
+#     libpng-dev \
+#     libjpeg-dev \
+#     && rm -rf /var/lib/apt/lists/*
+
+# RUN python3 -m venv /venv
+
+# ENV PATH="/venv/bin:$PATH"
+# # 安装 Python 依赖
+# COPY requirements.txt ./
+# RUN pip install --upgrade pip && \
+#     pip install --no-cache-dir -r requirements.txt
+
+
+# # 安装 Node.js 20
+# RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+#     apt-get install -y nodejs && \
+#     npm install -g pnpm && \
+#     pnpm config set registry https://registry.npmmirror.com
+
+# # 创建用户和目录（在复制文件之前）
+# RUN addgroup --gid 1001 nodejs && \
+#     adduser --system --uid 1001 --ingroup nodejs nestjs && \
+#     mkdir -p /app/.cache/huggingface && \
+#     chown -R nestjs:nodejs /app
+
+# # 切换到nestjs用户
+# USER nestjs
+
+# # 安装 Node.js 依赖
+# COPY --chown=nestjs:nodejs package*.json pnpm-lock.yaml ./
+# RUN pnpm install --frozen-lockfile --prod
+
+# # 复制构建产物（使用chown直接设置所有者）
+# COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
+
+# # 创建uploads目录（避免不存在时出错）
+# RUN mkdir -p uploads
+
+# # 设置环境变量
+# ENV HF_HOME=/app/.cache/huggingface
+# ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
+# ENV HUGGINGFACE_HUB_CACHE=/app/.cache/huggingface
+# ENV NODE_ENV=production
+
+# EXPOSE 3000
+
+# CMD ["node", "dist/main.js"]
+
+# # 开发环境
+# FROM node:20-slim AS development
+
+# WORKDIR /app
+
+# # 安装系统依赖（Python环境）
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     python3 \
+#     python3-pip \
+#     python3-venv \
+#     ffmpeg \
+#     curl \
+#     libpng-dev \
+#     libjpeg-dev \
+#     && rm -rf /var/lib/apt/lists/*
+
+# # 创建用户和目录
+# RUN addgroup --gid 1001 nodejs && \
+#     adduser --system --uid 1001 --ingroup nodejs nestjs && \
+#     mkdir -p /app/.cache/huggingface && \
+#     chown -R nestjs:nodejs /app
+
+# # 切换到nestjs用户
+# USER nestjs
+
+# # 安装 Python 依赖
+# COPY --chown=nestjs:nodejs requirements.txt ./
+# RUN pip3 install --user --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+
+# # 安装 pnpm
+# RUN npm install -g pnpm && \
+#     pnpm config set registry https://registry.npmmirror.com
+
+# # 安装 Node.js 依赖
+# COPY --chown=nestjs:nodejs package*.json pnpm-lock.yaml ./
+# RUN pnpm install --frozen-lockfile
+
+# # 复制源代码
+# COPY --chown=nestjs:nodejs . .
+
+# # 设置环境变量
+# ENV HF_HOME=/app/.cache/huggingface
+# ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
+# ENV HUGGINGFACE_HUB_CACHE=/app/.cache/huggingface
+# ENV NODE_ENV=development
+
+# EXPOSE 3000
+
+# CMD ["pnpm", "run", "start:dev"]

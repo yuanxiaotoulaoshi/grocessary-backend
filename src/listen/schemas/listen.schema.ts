@@ -25,6 +25,9 @@ export class Listen{
 
   @Prop({required:true})
   baseName:string;
+
+  @Prop({required:true})
+  collectedAt:Date;
 }
 
 export const ListenSchema = SchemaFactory.createForClass(Listen);

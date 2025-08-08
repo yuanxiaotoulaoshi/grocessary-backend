@@ -7,8 +7,7 @@ import {Listen, ListenDocument} from './schemas/listen.schema';
 import { CreateListenDto } from './dto/create-listen.dto';
 import {User, UserDocument } from 'src/user/schemas/user.schema';
 import { NotFoundException } from '@nestjs/common';
-import {cutSentencesToMp3} from './utils/ffmpeg';
-import {transcribeWithWhisper} from './utils/whisper'
+
 import * as fs from 'fs';
 import * as path from 'path';
 import * as fsExtra from 'fs-extra';
@@ -22,7 +21,8 @@ export class ListenService {
   
   async create(dto:CreateListenDto,userId:string):Promise<Listen>{
     const {sentence, videoId, start,end,audioPath,baseName} = dto;
-    const existing  = await this.listenModel.findOne({audioPath,userId});
+    console.log("")
+    const existing  = await this.listenModel.findOne({baseName,audioPath,userId});
     console.log("existing",existing)
     if (existing){
       throw new BadRequestException('this sentence already exsits');
@@ -55,14 +55,26 @@ export class ListenService {
     await this.listenModel.findByIdAndDelete(listenId);
   }
 
-  async getFavorites(user:{sub:string,userName:string}){
+  async getFavorites(
+    user:{sub:string,userName:string},
+    pageIndex:number,
+    pageSize:number,
+  ){
     const fullUser = await this.userModel.findById(user.sub)
     if(!fullUser?.favorites||fullUser.favorites.length===0){
       return [];
     }
-    const favorites = await this.listenModel.find({
+    console.log("pageIndex",pageIndex)
+    console.log("pageSize",pageSize)
+    const skip = (pageIndex-1)*pageSize;
+    const fitler = {
       _id:{$in:fullUser.favorites},
-    })
+    }
+
+    console.log('skipppp',skip)
+    const favorites = await this.listenModel.find(fitler).skip(skip).limit(pageSize).exec();
+    console.log('favoritesss',favorites)
+
     return favorites;
   }
 

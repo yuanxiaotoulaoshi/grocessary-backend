@@ -3,4 +3,5 @@ export class CreateGlossaryDto {
   readonly enName: string;
   readonly categoryLevel1: string;
   readonly categoryLevel2: string;
+  readonly currentMetadata: string;
 }

@@ -5,4 +5,5 @@ export class CreateListenDto {
   readonly end: number;
   readonly audioPath:string;
   readonly baseName:string;
+  readonly collectedAt:Date;
 }

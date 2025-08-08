@@ -10,13 +10,10 @@ import {
   Request,UploadedFile,UseInterceptors,BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import {extname} from 'path';
 import { ListenService } from './listen.service';
 import { CreateListenDto } from './dto/create-listen.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/common/utils/decorators/current-user.decorator';
-// import { Request } from 'express';
-import { UserDocument } from 'src/user/schemas/user.schema';
 import { JwtPayload } from 'src/auth/types/jwt-payload';
 @Controller('listen')
 export class ListenController {
@@ -38,8 +35,16 @@ export class ListenController {
 
   @UseGuards(JwtAuthGuard)
   @Get('favorites')
-  async getFavoriteAudios(@CurrentUser() user:JwtPayload){
-    return this.listenService.getFavorites(user);
+  async getFavoriteAudios(
+    @CurrentUser() user:JwtPayload,
+    @Query('pageIndex') pageIndex = 1,
+    @Query('pageSize') pageSize = 10,
+  ){
+    return this.listenService.getFavorites(
+		user,
+		pageIndex,
+		pageSize,
+    );
   }
 
   @Delete('clear-all')
@@ -53,8 +58,6 @@ export class ListenController {
       storage:diskStorage({
         destination:'./uploads',
         filename:(req,file,cb)=>{
-          // const uniqueName = `${Date.now()}${extname(file.originalname)}`;
-          // cb(null,uniqueName);
           cb(null, file.originalname); // 直接保留原始文件名
         },
       })

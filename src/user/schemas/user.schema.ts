@@ -18,5 +18,8 @@ export class User{
 
   @Prop({type:[String], default:[]})
   favorites:string [];
+
+  @Prop({type:[String], default:[]})
+  chunks:string [];
 }
 export const UserSchema = SchemaFactory.createForClass(User);
